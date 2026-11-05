@@ -10,9 +10,9 @@ import { openHere } from '../lib/tabs'
 import { glow } from '../lib/motion'
 import { useStackableStore } from '../store/useStackableStore'
 import { BookmarkIcon } from './BookmarkIcon'
+import { useDisplayMode } from '../store/useDisplayMode'
 
 const DAY = 24 * 60 * 60 * 1000
-const JUST_SAVED = 2 * 60 * 1000
 
 interface Props {
   bookmark: Bookmark
@@ -20,9 +20,11 @@ interface Props {
   sortable?: boolean
   /** Marks the search result that Enter opens. */
   top?: boolean
+  tile?: boolean
 }
 
-export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) {
+export function BookmarkCard({ bookmark, sortable = true, top = false, tile = false }: Props) {
+  const tileSize = useDisplayMode((s) => s.size)
   const openModal = useStackableStore((s) => s.openModal)
   const removeWithUndo = useStackableStore((s) => s.removeWithUndo)
   const isOpen = useStackableStore((s) => findOpenTab(s.openTabs, bookmark.url) !== null)
@@ -44,13 +46,10 @@ export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) 
   const age = bookmark.dateAdded ? Date.now() - bookmark.dateAdded : Infinity
   const isNew = age < DAY && !bookmark.batch
 
-  // Glow after a drop or an undo, and once when a fresh save first shows up.
+  // Glow after a drop or an undo.
   useEffect(() => {
     if (flashSeq) glow(nodeRef.current, 120)
   }, [flashSeq])
-  useEffect(() => {
-    if (age < JUST_SAVED && !bookmark.batch) glow(nodeRef.current, 200)
-  }, []) // on mount only
 
   // Already open somewhere: a plain click switches to that tab. Modified clicks mean
   // "open another copy", so the browser keeps them.
@@ -93,21 +92,15 @@ export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) 
         nodeRef.current = el
         setNodeRef(el)
       }}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      style={{ transform: CSS.Translate.toString(transform), transition, ...(tile ? { width: tileSize } : {}) }}
       {...(sortable ? listeners : {})}
       data-drop-slot={isDragging ? '' : undefined}
-      className={`group/card relative rounded-lg border text-sm text-fg compact:text-[13px] ${grab} ${
+      className={`group/card relative rounded-lg border text-sm text-fg compact:text-[13px] ${tile ? 'shrink-0 text-center' : ''} ${grab} ${
         isDragging
           ? 'border-dashed border-accent-line bg-accent-soft/50' // the slot the card will drop into
           : `bg-card hover:border-line hover:bg-hover wallpaper:bg-card/70 wallpaper:hover:bg-hover/90 ${top ? 'border-accent-line' : 'border-transparent'}`
       }`}
     >
-      {isNew && !isDragging && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-mark"
-        />
-      )}
       {/* A real link, so the browser owns every open gesture: click (this tab), Ctrl/Cmd+click
           (background tab), Ctrl+Shift+click, middle-click, Shift+click (new window), the
           right-click link menu, Enter from the keyboard. draggable={false} keeps the native
@@ -118,12 +111,12 @@ export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) 
         draggable={false}
         title={tooltip}
         onClick={onLinkClick}
-        className={`flex items-center gap-2 rounded-lg py-2 pl-2.5 pr-9.5 ${grab} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus compact:py-1 ${
+        className={`${tile ? 'flex flex-col items-center gap-1.5 rounded-lg px-2 py-2' : 'flex items-center gap-2 rounded-lg py-2 pl-2.5 pr-9.5'} ${grab} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus compact:py-1 ${
           isDragging ? 'invisible' : ''
         }`}
       >
-        <span className="relative shrink-0">
-          <BookmarkIcon emoji={emoji} title={shown} url={bookmark.url} />
+        <span className={tile ? "relative flex shrink-0 items-center justify-center rounded-lg bg-well" : "relative shrink-0"} style={tile ? { width: tileSize * 7 / 12, height: tileSize * 7 / 12 } : undefined}>
+          <BookmarkIcon emoji={emoji} title={shown} url={bookmark.url} size={tile ? Math.round(tileSize / 3) : 16} />
           {isOpen && (
             <span
               aria-hidden
@@ -132,7 +125,7 @@ export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) 
           )}
         </span>
         {/* Middle truncation: the start gets the ellipsis, the last word or two stay. */}
-        <span className="flex min-w-0">
+        <span className={tile ? "flex w-full min-w-0 justify-center text-xs" : "flex min-w-0"}>
           <span className="truncate">{head}</span>
           {tail && <span className="shrink-0 whitespace-pre">{tail}</span>}
         </span>
@@ -148,7 +141,7 @@ export function BookmarkCard({ bookmark, sortable = true, top = false }: Props) 
       )}
       <button
         onClick={() => setMenuOpen((v) => !v)}
-        className={`absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-faint opacity-0 hover:bg-selected hover:text-fg focus-visible:opacity-100 group-hover/card:opacity-100 ${
+        className={`absolute ${tile ? 'right-1 top-1' : 'right-2.5 top-1/2 -translate-y-1/2'} rounded p-0.5 text-faint opacity-0 hover:bg-selected hover:text-fg focus-visible:opacity-100 group-hover/card:opacity-100 ${
           isDragging ? 'invisible' : ''
         }`}
         aria-label="Bookmark options"

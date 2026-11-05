@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -7,8 +7,9 @@ import {
   Plus,
   Search,
   Settings as SettingsIcon,
-  SquareKanban,
   GripVertical,
+  Columns3,
+  Grid3X3,
   MoreVertical,
   Pencil,
   Trash2,
@@ -20,6 +21,7 @@ import { glow } from '../lib/motion'
 import { topHit } from '../lib/search'
 import { openHere, openInNewTab } from '../lib/tabs'
 import { spaceIndexForKey, typingInField } from '../lib/shortcuts'
+import { useDisplayMode } from '../store/useDisplayMode'
 
 interface SortableSpaceProps {
   space: Space
@@ -188,29 +190,17 @@ export function Sidebar() {
   const selectSpace = useStackableStore((s) => s.selectSpace)
   const search = useStackableStore((s) => s.search)
   const setSearch = useStackableStore((s) => s.setSearch)
-  const revealStack = useStackableStore((s) => s.revealStack)
   const openModal = useStackableStore((s) => s.openModal)
   const collapsed = useStackableStore((s) => s.sidebarCollapsed)
   const toggle = useStackableStore((s) => s.toggleSidebar)
+  const displayMode = useDisplayMode((s) => s.mode)
+  const toggleDisplay = useDisplayMode((s) => s.toggle)
+  const tileSize = useDisplayMode((s) => s.size)
+  const setTileSize = useDisplayMode((s) => s.setSize)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const [focusSearch, setFocusSearch] = useState(false)
 
   const spaces = tree?.spaces ?? []
-  const activeSpace = spaces.find((s) => s.id === selectedId) ?? null
-
-  const filteredStacks = useMemo(() => {
-    if (!activeSpace) return []
-    if (!search.trim()) return activeSpace.stacks
-    const q = search.trim().toLowerCase()
-    return activeSpace.stacks.filter(
-      (st) =>
-        st.title.toLowerCase().includes(q) ||
-        st.bookmarks.some(
-          (b) => b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q),
-        ),
-    )
-  }, [activeSpace, search])
-
   // "/" from anywhere on the page jumps to search (expanding the sidebar if needed); 1-9 jump
   // to that space (0.5.0). Neither fires while typing in a field or with a dialog open.
   useEffect(() => {
@@ -260,9 +250,8 @@ export function Sidebar() {
     else void openHere(hit.url, useStackableStore.getState().openTabs)
   }
 
-  if (collapsed) {
-    return (
-      <aside className="flex w-12 shrink-0 flex-col items-center gap-3 border-r border-line bg-panel py-3 wallpaper:bg-panel/80 wallpaper:backdrop-blur-xl">
+  const collapsedView = (
+      <aside className="flex h-full w-12 shrink-0 flex-col items-center gap-3 border-r border-line bg-panel py-3 wallpaper:bg-panel/80 wallpaper:backdrop-blur-xl">
         <button
           onClick={toggle}
           className="rounded p-1 text-faint hover:bg-hover hover:text-fg"
@@ -270,7 +259,7 @@ export function Sidebar() {
         >
           <ChevronRight className="h-4 w-4" />
         </button>
-        <div className="mt-2 flex flex-col gap-1.5">
+        <div className="mt-2 flex min-h-0 flex-col gap-1.5 overflow-y-auto">
           {spaces.map((s, i) => (
             <button
               key={s.id}
@@ -284,65 +273,31 @@ export function Sidebar() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={displayMode === 'list'}
+          aria-label="Icon grid view"
+          title={displayMode === 'list' ? 'Switch to board view' : 'Switch to icon grid view'}
+          onClick={toggleDisplay}
+          className="mt-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-card text-soft hover:bg-hover hover:text-strong"
+        >
+          {displayMode === 'list' ? <Columns3 className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+        </button>
       </aside>
-    )
-  }
+  )
 
   return (
-    <aside className="flex w-[240px] shrink-0 flex-col border-r border-line bg-panel wallpaper:bg-panel/80 wallpaper:backdrop-blur-xl">
-      <div className="flex items-center justify-between px-3 py-3">
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-strong">
-          <SquareKanban className="h-4 w-4 text-accent" />
-          Stackboard
-        </div>
+    <div className={`sidebar-transition shrink-0 overflow-hidden ${collapsed ? "w-12" : "w-[240px]"}`}>
+    {collapsed ? collapsedView : <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-line bg-panel wallpaper:bg-panel/80 wallpaper:backdrop-blur-xl">
+      <div className="relative flex items-center justify-end px-3 py-3">
+        <span className="wired-logo text-strong pointer-events-none absolute left-1/2 -translate-x-1/2">Wired</span>
         <button
           onClick={toggle}
           className="rounded p-1 text-faint hover:bg-hover hover:text-fg"
           aria-label="Collapse sidebar"
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="px-3 pb-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
-          <input
-            ref={searchRef}
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={onSearchKey}
-            placeholder="Search all spaces"
-            aria-label="Search all spaces"
-            className="peer w-full rounded-md border border-line bg-sunken py-1.5 pl-7 pr-7 text-sm text-fg placeholder:text-faint focus:border-focus focus:bg-card focus:outline-none"
-          />
-          {search ? (
-            <button
-              onClick={() => {
-                setSearch('')
-                searchRef.current?.focus()
-              }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-faint hover:bg-selected hover:text-fg"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          ) : (
-            <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-line bg-card px-1 font-sans text-[10px] leading-4 text-faint peer-focus:hidden">
-              /
-            </kbd>
-          )}
-        </div>
-      </div>
-
-      <div className="px-3 pb-2">
-        <button
-          onClick={() => openModal({ kind: 'settings' })}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-soft hover:bg-hover hover:text-strong compact:py-1"
-        >
-          <SettingsIcon className="h-3.5 w-3.5" />
-          Settings
         </button>
       </div>
 
@@ -375,23 +330,6 @@ export function Sidebar() {
                   active={s.id === selectedId && !search.trim()}
                   onClick={() => goToSpace(s.id)}
                 />
-                {s.id === selectedId && (
-                  <div className="ml-7 mt-0.5 flex flex-col gap-0.5">
-                    {filteredStacks.map((st) => (
-                      <a
-                        key={st.id}
-                        href={`#stack-${st.id}`}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          revealStack(s.id, st.id)
-                        }}
-                        className="truncate rounded px-2 py-1 text-xs text-muted hover:bg-hover hover:text-fg compact:py-0.5"
-                      >
-                        {st.title}
-                      </a>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
             {spaces.length === 0 && (
@@ -405,6 +343,71 @@ export function Sidebar() {
           </div>
         </SortableContext>
       </div>
-    </aside>
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={onSearchKey}
+            placeholder="Search all spaces"
+            aria-label="Search all spaces"
+            className="peer w-full rounded-md border border-line bg-sunken py-1.5 pl-7 pr-7 text-sm text-fg placeholder:text-faint focus:border-focus focus:bg-card focus:outline-none"
+          />
+          {search ? (
+            <button
+              onClick={() => {
+                setSearch('')
+                searchRef.current?.focus()
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-faint hover:bg-selected hover:text-fg"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-line bg-card px-1 font-sans text-[10px] leading-4 text-faint peer-focus:hidden">
+              /
+            </kbd>
+          )}
+        </div>
+      </div>
+
+      <div className="px-3 pb-3">
+        <label htmlFor="tile-size" className="mb-1 flex justify-between text-xs text-muted">
+          <span>Tile and row size</span><span>{Math.round(tileSize / 96 * 100)}%</span>
+        </label>
+        <input id="tile-size" type="range" min="48" max="128" step="4" value={tileSize}
+          onChange={(event) => setTileSize(Number(event.target.value))}
+          disabled={displayMode !== 'list'}
+          title={displayMode === 'list' ? 'Adjust icon tile size' : 'Switch to icon grid view to adjust tile size'}
+          className="w-full accent-current text-accent-text disabled:opacity-40" />
+      </div>
+      <div className="flex items-center gap-1 px-3 pb-2">
+        <button
+          onClick={() => openModal({ kind: 'settings' })}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-soft hover:bg-hover hover:text-strong compact:py-1"
+        >
+          <SettingsIcon className="h-3.5 w-3.5" />
+          Settings
+        </button>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={displayMode === 'list'}
+          aria-label="Icon grid view"
+          title={displayMode === 'list' ? 'Switch to board view' : 'Switch to icon grid view'}
+          onClick={toggleDisplay}
+          className="flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1.5 text-soft hover:bg-hover hover:text-strong"
+        >
+          <Columns3 className={`h-3.5 w-3.5 ${displayMode === 'board' ? 'text-accent-text' : ''}`} />
+          <Grid3X3 className={`h-3.5 w-3.5 ${displayMode === 'list' ? 'text-accent-text' : ''}`} />
+        </button>
+      </div>
+
+    </aside>}
+    </div>
   )
 }

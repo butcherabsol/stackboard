@@ -23,8 +23,7 @@ export function Welcome() {
           Welcome to Stackboard
         </h2>
         <p className="rise on-wallpaper mt-2 max-w-lg text-[15px] leading-relaxed text-muted" style={delay(150)}>
-          Your new tab, sorted into spaces of link stacks. Everything is saved as ordinary Chrome
-          bookmarks, so it syncs with Chrome and works offline.
+          Your links, sorted into spaces and stacks. Your board is saved locally in this browser.
         </p>
 
         {sources === null && <div className="mt-8 h-44 animate-pulse rounded-2xl bg-card/60" />}
@@ -64,7 +63,7 @@ export function Welcome() {
         )}
 
         <p className="rise on-wallpaper mt-12 text-xs text-muted" style={delay(390)}>
-          Saved under Other bookmarks › Stackboard. No account, and nothing leaves your browser.
+          Saved in this browser. Export a backup to keep a separate copy.
         </p>
       </div>
     </div>

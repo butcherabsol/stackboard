@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Modal, PrimaryButton, SecondaryButton } from './Modal'
-import { Check, Download, FolderInput, Link2, Package, Star, Upload } from 'lucide-react'
+import { Download, Package, Upload } from 'lucide-react'
 import { exportBackup, importBackup } from '../../lib/bookmarks'
-import { downloadJson, openInNewTab, pickJsonFile } from '../../lib/tabs'
-import { REVIEWS_URL, SHARE_URL } from '../../lib/onboarding'
-import { prefs } from '../../lib/prefs'
+import { downloadJson, pickJsonFile } from '../../lib/tabs'
 import type { BookmarkBackup } from '../../lib/types'
 import { useStackableStore } from '../../store/useStackableStore'
 import { AppearanceSettings } from '../AppearanceSettings'
@@ -15,23 +13,6 @@ export function SettingsModal() {
   const refresh = useStackableStore((s) => s.refresh)
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [linkCopied, setLinkCopied] = useState(false)
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(SHARE_URL)
-      setLinkCopied(true)
-      setTimeout(() => setLinkCopied(false), 1600)
-    } catch {
-      setStatus(SHARE_URL)
-    }
-  }
-
-  const rate = () => {
-    prefs.setRating('rated')
-    void openInNewTab(REVIEWS_URL, true)
-  }
-
   const onExport = async () => {
     setBusy(true)
     try {
@@ -78,12 +59,6 @@ export function SettingsModal() {
             Add to your board
           </h3>
           <div className="flex flex-wrap gap-2">
-            <SecondaryButton onClick={() => openModal({ kind: 'import' })}>
-              <span className="inline-flex items-center gap-1.5">
-                <FolderInput className="h-3.5 w-3.5" />
-                Copy from Chrome bookmarks
-              </span>
-            </SecondaryButton>
             <SecondaryButton onClick={() => openModal({ kind: 'packs' })}>
               <span className="inline-flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5" />
@@ -98,7 +73,7 @@ export function SettingsModal() {
             Backup
           </h3>
           <p className="mb-2 text-xs text-muted">
-            Stackboard stores everything in Chrome bookmarks under <code>Other bookmarks → Stackboard</code>.
+            Stackboard stores your board locally in this browser.
             Use export/import for a portable JSON snapshot.
           </p>
           <div className="flex gap-2">
@@ -118,34 +93,6 @@ export function SettingsModal() {
         </section>
 
         <KeysSection />
-
-        <section>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-            Like Stackboard?
-          </h3>
-          <p className="mb-2 text-xs text-muted">
-            It's free, with no ads and no account. A rating or a share is how other people find it.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <SecondaryButton onClick={rate}>
-              <span className="inline-flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5" />
-                Rate it
-              </span>
-            </SecondaryButton>
-            <SecondaryButton onClick={() => void copyLink()}>
-              <span className="inline-flex items-center gap-1.5">
-                {linkCopied ? <Check className="h-3.5 w-3.5 text-accent-text" /> : <Link2 className="h-3.5 w-3.5" />}
-                {linkCopied ? 'Link copied' : 'Copy link to share'}
-              </span>
-            </SecondaryButton>
-          </div>
-        </section>
-
-        <section className="rounded-md border border-line bg-sunken px-3 py-2 text-xs text-muted">
-          <div className="font-medium text-fg">Tip</div>
-          You can also edit / inspect everything at <code>chrome://bookmarks</code>. Changes there appear in Stackboard on the next new tab.
-        </section>
 
         {status && <div className="text-xs text-accent-text">{status}</div>}
       </div>

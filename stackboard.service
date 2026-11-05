@@ -1,0 +1,12 @@
+[Unit]
+Description=Local Stackboard start page
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jacek/Documents/ChatGPT/stackboard
+ExecStart=/usr/bin/python3 -m http.server 8765 --bind 127.0.0.1 --directory dist
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

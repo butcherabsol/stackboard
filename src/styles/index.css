@@ -289,3 +289,38 @@
     animation: none;
   }
 }
+
+@font-face {
+  font-family: "Love Letter Typewriter";
+  src: url("/fonts/LoveLetterTypewriter.ttf") format("truetype");
+  font-display: swap;
+}
+
+.wired-logo {
+  font-family: "Love Letter Typewriter", monospace;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.sidebar-transition {
+  transition: width 240ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-transition { transition: none; }
+}
+
+.add-stack-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 240ms ease-in-out, transform 240ms ease-in-out;
+}
+.add-stack-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .add-stack-reveal { transition: none; }
+}

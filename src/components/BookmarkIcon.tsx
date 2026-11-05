@@ -7,22 +7,23 @@ interface Props {
   /** Display title, for the monogram letter. */
   title: string
   url: string
+  size?: number
 }
 
-export function BookmarkIcon({ emoji, title, url }: Props) {
+export function BookmarkIcon({ emoji, title, url, size = 16 }: Props) {
   if (emoji) {
     return (
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none">
+      <span className="flex shrink-0 items-center justify-center leading-none" style={{ width: size, height: size, fontSize: size * 0.8 }}>
         {emoji}
       </span>
     )
   }
-  const src = faviconUrl(url, 32)
+  const src = faviconUrl(url, size > 16 ? 64 : 32)
   // Keyed by src so an edited URL starts a fresh check.
-  return <Favicon key={src} src={src} title={title} url={url} />
+  return <Favicon key={src} src={src} title={title} url={url} size={size} />
 }
 
-function Favicon({ src, title, url }: { src: string; title: string; url: string }) {
+function Favicon({ src, title, url, size }: { src: string; title: string; url: string; size: number }) {
   const [icon, setIcon] = useState<ResolvedIcon | undefined>(() => peekFavicon(src))
   const [failed, setFailed] = useState(false)
 
@@ -37,15 +38,15 @@ function Favicon({ src, title, url }: { src: string; title: string; url: string 
 
   // Until resolved, hold the space so the title doesn't shift; a site with no icon never
   // flashes Chrome's grey globe on its way to the monogram.
-  if (!icon) return <span aria-hidden className="h-4 w-4 shrink-0" />
+  if (!icon) return <span aria-hidden className="shrink-0" style={{ width: size, height: size }} />
 
   if (icon.generic || failed) {
     const m = monogram(title, url)
     return (
       <span
         aria-hidden
-        className="flex h-4 w-4 shrink-0 select-none items-center justify-center rounded-[4px] text-[10px] font-bold leading-none"
-        style={{ backgroundColor: `var(--sb-tint-${m.tint}-bg)`, color: `var(--sb-tint-${m.tint}-fg)` }}
+        className="flex shrink-0 select-none items-center justify-center rounded-[4px] font-bold leading-none"
+        style={{ width: size, height: size, fontSize: size * 0.625, backgroundColor: `var(--sb-tint-${m.tint}-bg)`, color: `var(--sb-tint-${m.tint}-fg)` }}
       >
         {m.letter}
       </span>
@@ -56,10 +57,10 @@ function Favicon({ src, title, url }: { src: string; title: string; url: string 
     <img
       src={icon.src}
       alt=""
-      width={16}
-      height={16}
+      width={size}
+      height={size}
       draggable={false}
-      className={`h-4 w-4 shrink-0 rounded-sm ${icon.glyph ? `glyph-${icon.glyph}` : ''}`}
+      className={`shrink-0 rounded-sm ${icon.glyph ? `glyph-${icon.glyph}` : ''}`}
       onError={() => setFailed(true)}
     />
   )

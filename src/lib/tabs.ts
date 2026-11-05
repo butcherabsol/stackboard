@@ -37,6 +37,10 @@ export async function openHere(url: string, openTabs: OpenTabIndex | null): Prom
 export async function openAllInTabs(bookmarks: Bookmark[], groupTitle?: string): Promise<void> {
   if (bookmarks.length === 0) return
 
+  if (!chrome.tabs?.create) {
+    for (const bm of bookmarks) window.open(bm.url, '_blank', 'noopener')
+    return
+  }
   const created: chrome.tabs.Tab[] = []
   for (const bm of bookmarks) {
     const t = await chrome.tabs.create({ url: bm.url, active: false })

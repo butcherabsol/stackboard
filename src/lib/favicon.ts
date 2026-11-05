@@ -7,7 +7,11 @@ const IS_EXTENSION_RUNTIME =
 export function faviconUrl(pageUrl: string, size: number = 32): string {
   if (!IS_EXTENSION_RUNTIME) {
     try {
-      const host = new URL(pageUrl).hostname
+      const page = new URL(pageUrl)
+      const host = page.hostname.toLowerCase()
+      // Google cannot reach private services; request their conventional icon directly.
+      const privateHost = host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host === '[::1]' || /^(127|10)\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)
+      if (privateHost && (page.protocol === 'http:' || page.protocol === 'https:')) return new URL('/favicon.ico', page.origin).href
       return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${size}`
     } catch {
       return ''
